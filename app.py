@@ -2,7 +2,15 @@
 Skylark Drones - Operations Coordinator AI Agent
 Streamlit conversational UI.
 """
+import os
 import streamlit as st
+
+# Make Streamlit Cloud Secrets visible to config (before importing config)
+if hasattr(st, "secrets") and st.secrets:
+    for k, v in st.secrets.items():
+        if isinstance(v, str) and k not in os.environ:
+            os.environ[k] = v
+
 import config
 from agent import handle_message
 

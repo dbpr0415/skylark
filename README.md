@@ -114,7 +114,12 @@ Pilot and drone status/assignment updates will then sync back to the sheets.
 
 1. Push the repo to GitHub.
 2. Go to [share.streamlit.io](https://share.streamlit.io), connect the repo, set **Main file path** to `app.py`.
-3. In **Secrets**, add the same variables as in `.env` (sheet IDs and credentials). Without them, the app runs with local CSV data only.
+3. **To enable status updates** (e.g. “Set P001 status to On Leave”) on the deployed app, add **Secrets** (app → Settings → Secrets). The deployed app runs in read-only mode otherwise and cannot save to CSV. Add:
+   - `PILOT_SHEET_ID` = your Pilot Roster sheet ID  
+   - `DRONE_SHEET_ID` = your Drone Fleet sheet ID  
+   - `MISSIONS_SHEET_ID` = your Missions sheet ID  
+   - `GOOGLE_CREDENTIALS_JSON_CONTENT` = paste the **entire contents** of your service account JSON file (the single key’s value is the full JSON as one string).  
+   Then **reboot the app** so it picks up the secrets. Without these, the app still runs but “Set … status” and “Update drone …” will show a message that Sheets must be configured.
 
 ---
 

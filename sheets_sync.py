@@ -1,4 +1,5 @@
 """Google Sheets 2-way sync: read pilots, drones, missions; write pilot status and drone status."""
+import json
 import pandas as pd
 from typing import Optional
 
@@ -17,7 +18,11 @@ def _get_client():
                 "https://www.googleapis.com/auth/spreadsheets",
                 "https://www.googleapis.com/auth/drive.readonly",
             ]
-            creds = Credentials.from_service_account_file(str(config.CREDENTIALS_PATH), scopes=scopes)
+            if config.GOOGLE_CREDENTIALS_JSON_CONTENT:
+                info = json.loads(config.GOOGLE_CREDENTIALS_JSON_CONTENT)
+                creds = Credentials.from_service_account_info(info, scopes=scopes)
+            else:
+                creds = Credentials.from_service_account_file(str(config.CREDENTIALS_PATH), scopes=scopes)
             _sheets_client = gspread.authorize(creds)
         except Exception as e:
             raise RuntimeError(f"Google Sheets auth failed: {e}") from e
@@ -94,9 +99,15 @@ def write_pilot_roster(df: pd.DataFrame) -> None:
             return
         except Exception as e:
             raise RuntimeError(f"Failed to sync pilot roster to Google Sheets: {e}") from e
-    # Local: write to CSV
+    # Local: write to CSV (fails on Streamlit Cloud / read-only filesystem)
     path = config.DATA_DIR / "pilot_roster.csv"
-    df.to_csv(path, index=False)
+    try:
+        df.to_csv(path, index=False)
+    except (PermissionError, OSError) as e:
+        raise RuntimeError(
+            "Cannot save updates here—the app is running in read-only mode. "
+            "To enable status updates on the deployed app, add your Google Sheets credentials and Sheet IDs in the app's Secrets (Settings → Secrets). See the README for setup."
+        ) from e
 
 def write_drone_fleet(df: pd.DataFrame) -> None:
     """Write full drone fleet back to sheet (status updates)."""
@@ -111,4 +122,10 @@ def write_drone_fleet(df: pd.DataFrame) -> None:
         except Exception as e:
             raise RuntimeError(f"Failed to sync drone fleet to Google Sheets: {e}") from e
     path = config.DATA_DIR / "drone_fleet.csv"
-    df.to_csv(path, index=False)
+    try:
+        df.to_csv(path, index=False)
+    except (PermissionError, OSError) as e:
+        raise RuntimeError(
+            "Cannot save drone status here—the app is running in read-only mode. "
+            "Add Google Sheets credentials and Sheet IDs in the app's Secrets to enable 2-way sync."
+        ) from e
